@@ -12,36 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "gcp_project_id" {
+variable "project_id" {
   type        = string
-  description = "The GCP project ID to apply this config to"
-}
-
-variable "name" {
-  type        = string
-  description = "Name given to the new GKE cluster"
-  default     = "online-boutique"
+  description = "The Google Cloud Project ID where resources will be deployed"
 }
 
 variable "region" {
   type        = string
-  description = "Region of the new GKE cluster"
+  description = "The Google Cloud region"
   default     = "us-central1"
 }
 
-variable "namespace" {
+variable "zone" {
   type        = string
-  description = "Kubernetes Namespace in which the Online Boutique resources are to be deployed"
-  default     = "default"
+  description = "The Google Cloud zone for the GKE cluster"
+  default     = "us-central1-a"
 }
 
-variable "filepath_manifest" {
+variable "cluster_name" {
   type        = string
-  description = "Path to Online Boutique's Kubernetes resources, written using Kustomize"
-  default     = "../kustomize/"
-}
-
-variable "memorystore" {
-  type        = bool
-  description = "If true, Online Boutique's in-cluster Redis cache will be replaced with a Google Cloud Memorystore Redis cache"
+  description = "The name of the GKE cluster"
+  default     = "online-boutique-cluster"
 }
