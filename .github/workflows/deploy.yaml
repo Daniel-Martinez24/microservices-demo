@@ -1,0 +1,74 @@
+name: Deploy Infrastructure and Application
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  # Map GitHub Secret to the required Terraform variable
+  TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+jobs:
+  deploy:
+    name: Provision & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: ./terraform
+        # Checks if code is cleanly formatted to Enterprise standards
+        run: terraform fmt -check
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        # Automatically applies the infrastructure changes (Cluster creation & Helm chart)
+        run: terraform apply -auto-approve
+
+      - name: Extract Terraform Outputs
+        id: tf_outputs
+        working-directory: ./terraform
+        run: |
+          echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> $GITHUB_ENV
+          echo "CLUSTER_LOCATION=$(terraform output -raw cluster_location)" >> $GITHUB_ENV
+
+      - name: Get GKE Credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          location: ${{ env.CLUSTER_LOCATION }}
+
+      - name: Deploy Online Boutique Kubernetes Manifests
+        # Executes in the root directory where kubernetes-manifests lives
+        working-directory: .
+        run: |
+          echo "Deploying the microservices to GKE..."
+          kubectl apply -f ./kubernetes-manifests
+
+      - name: Verify Deployment Status
+        run: |
+          echo "Waiting for pods to be ready..."
+          kubectl wait --for=condition=ready pod --all --namespace=default --timeout=300s
+          kubectl get pods -A
