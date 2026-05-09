@@ -60,7 +60,7 @@ jobs:
         working-directory: .
         run: |
           echo "Deploying the microservices to GKE..."
-          kubectl apply -f ./kubernetes-manifests
+          kubectl apply -f ./release/kubernetes-manifests.yaml
 
       - name: Verify Deployment Status
         run: |
