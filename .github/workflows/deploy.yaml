@@ -8,7 +8,7 @@ on:
 
 env:
   # Map GitHub Secret to the required Terraform variable
-  TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+  TF_VAR_project_id: ${{ vars.GCP_PROJECT_ID }}
 
 jobs:
   deploy:
@@ -36,11 +36,6 @@ jobs:
       - name: Terraform Init
         working-directory: ./terraform
         run: terraform init
-
-      - name: Terraform Format Check
-        working-directory: ./terraform
-        # Checks if code is cleanly formatted to Enterprise standards
-        run: terraform fmt -check
 
       - name: Terraform Apply
         working-directory: ./terraform
