@@ -6,8 +6,13 @@ on:
       - main
   workflow_dispatch:
 
+# 1. ESTO ES CRÍTICO PARA OIDC: Permite a GitHub Actions solicitar un token a GCP sin usar contraseñas
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
 env:
-  # Map GitHub Secret to the required Terraform variable
+  # Map GitHub Secret/Variable to the required Terraform variable
   TF_VAR_project_id: ${{ vars.GCP_PROJECT_ID }}
 
 jobs:
@@ -19,11 +24,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # 2. AUTENTICACIÓN ENTERPRISE (OIDC)
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          # AQUI DEBES REEMPLAZAR (Ver explicación abajo)
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
 
       - name: Setup Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -39,9 +47,9 @@ jobs:
 
       - name: Terraform Apply
         working-directory: ./terraform
-        # Automatically applies the infrastructure changes (Cluster creation & Helm chart)
         run: terraform apply -auto-approve
 
+      # 3. Excelente uso de variables dinámicas (Mantenemos tu lógica)
       - name: Extract Terraform Outputs
         id: tf_outputs
         working-directory: ./terraform
@@ -55,8 +63,16 @@ jobs:
           cluster_name: ${{ env.CLUSTER_NAME }}
           location: ${{ env.CLUSTER_LOCATION }}
 
+      # 4. NUEVO PASO: Desplegar Observabilidad de forma separada
+      - name: Deploy Prometheus Stack via Helm
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+            --namespace monitoring --create-namespace
+
+      # 5. Desplegar Online Boutique (Mantenemos tu ruta original)
       - name: Deploy Online Boutique Kubernetes Manifests
-        # Executes in the root directory where kubernetes-manifests lives
         working-directory: .
         run: |
           echo "Deploying the microservices to GKE..."
