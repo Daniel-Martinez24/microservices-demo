@@ -24,7 +24,7 @@ provider "google" {
 terraform {
   # Store the state inside a Google Cloud Storage bucket.
   backend "gcs" {
-    bucket = "cicd-terraform-state"
+    bucket = "tf-state-predictivo-70ad5"
     prefix = "terraform-state"
   }
 }
